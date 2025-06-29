@@ -18,6 +18,7 @@ class JemuranData:
     rain: bool
     last_update: datetime
     current_hour: int
+    status_jemuran: str
 
 
 class MQTTClient:
@@ -190,7 +191,8 @@ class MQTTClient:
                 'suhu': 'temperature',
                 'kelembapan': 'humidity',
                 'cahaya_analog': 'light',
-                'hujan': 'rain'
+                'hujan': 'rain',
+                'status_jemuran': 'status_jemuran'
             }
 
             mapped_data = {
@@ -205,6 +207,8 @@ class MQTTClient:
                     temperature=mapped_data.get('temperature', 0.0),
                     humidity=mapped_data.get('humidity', 0.0),
                     light=mapped_data.get('light', 0),
+                    status_jemuran=mapped_data.get(
+                        'status_jemuran', 'UNKNOWN'),
                     rain=mapped_data.get('rain', False),
                     last_update=last_update,
                     current_hour=current_hour

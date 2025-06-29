@@ -37,24 +37,28 @@ mqtt_client = MQTTClient()
 fuzzy_system = FuzzySystem()
 
 # Startup event
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize connections on startup"""
     try:
         logger.info("Starting up application...")
-        
+
         # Connect to MQTT (sync function run in thread)
         def sync_connect():
             mqtt_client.connect()
-        
+
         await asyncio.to_thread(sync_connect)
-        
+
         logger.info("Application startup completed")
     except Exception as e:
         logger.error(f"Startup failed: {str(e)}", exc_info=True)
         raise
 
 # Health check endpoint
+
+
 @app.get("/health", response_model=HealthCheckResponse, include_in_schema=False)
 async def health_check():
     """System health check"""
@@ -68,6 +72,8 @@ async def health_check():
     }
 
 # API Endpoints
+
+
 @app.get("/api/data", response_model=JemuranData)
 async def get_latest_data():
     """
@@ -88,6 +94,7 @@ async def get_latest_data():
         rain=latest.rain,
         last_update=latest.last_update
     )
+
 
 @app.get("/api/recommendation", response_model=RecommendationResponse)
 async def get_recommendation():
@@ -154,11 +161,13 @@ async def get_recommendation():
         return response_data
 
     except Exception as e:
-        logger.error(f"Recommendation generation failed: {str(e)}", exc_info=True)
+        logger.error(
+            f"Recommendation generation failed: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Terjadi kesalahan saat membuat rekomendasi: {str(e)}"
         )
+
 
 @app.post("/api/control")
 async def control_jemuran(request: ControlRequest):
@@ -193,6 +202,47 @@ async def control_jemuran(request: ControlRequest):
             detail=f"Gagal mengirim perintah kontrol: {str(e)}"
         )
 
+
+@app.get("/api/statusjemuran")
+async def get_jemuran_status():
+    """
+    Get current jemuran status (TERBUKA/TERTUTUP)
+    Response: {
+        "status": "success",
+        "status_jemuran": "TERBUKA"|"TERTUTUP",
+        "last_update": "datetime"
+    }
+    """
+    if not mqtt_client.latest_data:
+        logger.warning("No data available when requesting jemuran status")
+        raise HTTPException(
+            status_code=404,
+            detail="Belum ada data sensor yang tersedia"
+        )
+
+    try:
+        latest = mqtt_client.latest_data
+        
+        # Pastikan status_jemuran ada di data
+        if not hasattr(latest, 'status_jemuran') or latest.status_jemuran is None:
+            logger.warning("Jemuran status field missing")
+            raise HTTPException(
+                status_code=404,
+                detail="Field status_jemuran tidak ditemukan dalam data sensor"
+            )
+
+        return {
+            "status": "success",
+            "status_jemuran": latest.status_jemuran,
+            "last_update": latest.last_update.isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get jemuran status: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Terjadi kesalahan saat mengambil status jemuran: {str(e)}"
+        )
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

@@ -4,3 +4,5 @@ paho-mqtt==2.0.0
 scikit-fuzzy==0.4.2
 pydantic==2.6.1
 python-dotenv==1.0.0
+
+python-dotenv==1.0.0
